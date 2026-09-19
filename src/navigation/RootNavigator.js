@@ -4,6 +4,8 @@ import OnboardingScreen from "../screens/OnboardingScreen";
 import LanguageSelectScreen from "../screens/LanguageSelectScreen";
 import LoginScreen from "../screens/LoginScreen";
 import GameScreen from "../screens/GameScreen";
+import WorldMapScreen from "../screens/WorldMapScreen";
+import LeaderboardScreen from "../screens/LeaderboardScreen";
 import MainTabs from "./MainTabs";
 
 const Stack = createNativeStackNavigator();
@@ -21,6 +23,8 @@ export default function RootNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="Game" component={GameScreen} />
+      <Stack.Screen name="WorldMap" component={WorldMapScreen} />
+      <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
     </Stack.Navigator>
   );
 }

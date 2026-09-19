@@ -19,10 +19,22 @@ export function CoinBadge({ coins, onAdd, style }) {
   );
 }
 
-export function BackButton({ onPress, style }) {
+export function BackButton({ onPress, navigation, style }) {
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else if (navigation) {
+      if (navigation.canGoBack && navigation.canGoBack()) {
+        navigation.goBack();
+      } else if (navigation.navigate) {
+        navigation.navigate("MainTabs", { screen: "Home" });
+      }
+    }
+  };
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       style={({ pressed }) => [styles.backBtn, style, pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] }]}
       hitSlop={8}
     >
@@ -148,4 +160,3 @@ const styles = StyleSheet.create({
   rowRight: { flexDirection: "row", alignItems: "center" },
   rightText: { color: colors.cream, marginRight: 6, fontWeight: "600", fontSize: 14 },
 });
-

@@ -1,433 +1,690 @@
-import React from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  ImageBackground,
   ScrollView,
+  Modal,
+  Switch,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radii, shadow } from "../theme";
+import { colors, radii, shadow, glowShadow } from "../theme";
 import { useGame } from "../context/GameContext";
+import { getDailyChallenge, LANGUAGES } from "../data/puzzles";
+import { todayKey } from "../utils/streak";
+import { useT } from "../i18n/useT";
+import ScreenBG from "../components/ScreenBG";
+import PrimaryButton from "../components/PrimaryButton";
+import LuxuryModal from "../components/LuxuryModal";
 
-const BG_IMAGE = require("../../assets/images/clean_nature_bg.jpg");
+const BG_IMAGE = require("../../assets/images/mountain_alps.jpg");
+
+const AVATAR_ICONS = {
+  leaf: "leaf",
+  flame: "flame",
+  star: "star",
+  trophy: "trophy",
+  globe: "earth",
+  compass: "compass",
+  person: "person",
+};
 
 export default function HomeScreen({ navigation }) {
-  const { state } = useGame();
-  const unlocked = state.unlockedLevel[state.language] || 1;
+  const {
+    state,
+    totalStats,
+    isCloudConnected,
+    updateSetting,
+    authUser,
+    logout,
+    backendConfigured,
+  } = useGame();
+  const { t } = useT();
+
+  const [menuModalVisible, setMenuModalVisible] = useState(false);
+  const [guideModalVisible, setGuideModalVisible] = useState(false);
+  const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
+
+  const entranceAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(entranceAnim, {
+      toValue: 1,
+      duration: 380,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const challenge = useMemo(() => getDailyChallenge(state.language), [state.language]);
+  const claimedToday = state.dailyChallenge.lastCompletedDate === todayKey();
+  const foundToday = claimedToday ? challenge.words.length : (state.dailyChallenge.foundToday || []).length;
+  const { levelsPlayed, wordsFound } = totalStats();
+  const learnedMinutes = levelsPlayed * 2 + Object.keys(state.levelStars[state.language] || {}).length;
+  const learnedHours = Math.floor(learnedMinutes / 60);
+  const learnedMinsRemainder = learnedMinutes % 60;
+
+  const currentLangObj = useMemo(
+    () => LANGUAGES.find((l) => l.code === state.language) || LANGUAGES[0],
+    [state.language]
+  );
+
+  const GRID_ITEMS = [
+    { key: "daily", icon: "book", title: t("home.grid.dailyTitle"), subtitle: t("home.grid.dailySub"), tab: "Daily" },
+    { key: "play", icon: "game-controller", title: t("home.grid.playTitle"), subtitle: t("home.grid.playSub"), tab: "Worlds" },
+    { key: "leaderboard", icon: "trophy", title: "Leaderboard", subtitle: "Global Top Ranks", tab: "Leaderboard" },
+    { key: "languages", icon: "globe", title: t("home.grid.langTitle"), subtitle: t("home.grid.langSub"), tab: "LanguageSelectFromHome" },
+  ];
+
+  const goToTab = (tabName) => {
+    if (tabName === "Leaderboard") {
+      navigation.navigate("Leaderboard");
+    } else if (tabName) {
+      navigation.navigate(tabName);
+    }
+  };
+
+  const handleLogout = () => {
+    setLogoutDialogVisible(true);
+  };
 
   return (
-    <ImageBackground source={BG_IMAGE} style={styles.container} resizeMode="cover">
-      <View style={styles.overlay} />
+    <ScreenBG source={BG_IMAGE} dim={0.24} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        {/* Top Header Bar */}
-        <View style={styles.topBar}>
-          <Pressable
-            onPress={() => navigation.navigate("Profile")}
-            style={styles.menuBtn}
-            hitSlop={8}
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Animated.View
+            style={{
+              opacity: entranceAnim,
+              transform: [
+                {
+                  translateY: entranceAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [16, 0],
+                  }),
+                },
+              ],
+            }}
           >
-            <Ionicons name="menu" size={22} color={colors.forestDark} />
-          </Pressable>
+            {/* Top Bar */}
+            <View style={styles.topBar}>
+              {/* Professional Frosted-Gold Hamburger Menu Button */}
+              <Pressable
+                style={styles.menuBtn}
+                hitSlop={12}
+                onPress={() => setMenuModalVisible(true)}
+              >
+                <Ionicons name="menu" size={24} color={colors.goldLight} />
+              </Pressable>
 
-          {/* Center Brand Crest */}
-          <View style={styles.brandCrest}>
-            <Ionicons name="leaf" size={13} color={colors.gold} style={{ marginRight: 5 }} />
-            <View>
-              <Text style={styles.brandCrestTitle}>WORD CONNECT</Text>
-              <Text style={styles.brandCrestSubtitle}>MULTILINGUAL</Text>
-            </View>
-          </View>
+              {/* Cloud Sync Status Indicator */}
+              <View style={styles.cloudBadge}>
+                <View style={[styles.cloudDot, isCloudConnected ? styles.cloudDotLive : styles.cloudDotOffline]} />
+                <Text style={styles.cloudText}>
+                  {isCloudConnected ? "Cloud Synced" : "Local Play"}
+                </Text>
+              </View>
 
-          {/* Right Streak & Profile Group */}
-          <View style={styles.topRightGroup}>
-            <View style={styles.streakBadge}>
-              <Ionicons name="flame" size={16} color="#FF7A00" />
-              <View style={{ marginLeft: 4 }}>
-                <Text style={styles.streakCount}>12</Text>
-                <Text style={styles.streakLabel}>Streak</Text>
+              <View style={styles.rightGroup}>
+                <Pressable onPress={() => navigation.navigate("Profile")}>
+                  <View style={styles.avatarWrap}>
+                    <Ionicons
+                      name={AVATAR_ICONS[state.avatar] || "person"}
+                      size={20}
+                      color={colors.white}
+                    />
+                    <View style={styles.avatarDot} />
+                  </View>
+                </Pressable>
+                <View style={styles.streakBadge}>
+                  <Ionicons name="flame" size={14} color="#FF7A45" />
+                  <Text style={styles.streakText}>{t("home.streak", { count: state.streakDays })}</Text>
+                </View>
               </View>
             </View>
 
-            <Pressable
-              onPress={() => navigation.navigate("Profile")}
-              style={styles.avatarWrap}
-              hitSlop={8}
-            >
-              <View style={styles.avatarInner}>
-                <Ionicons name="person" size={16} color={colors.white} />
-              </View>
-              <View style={styles.onlineDot} />
-            </Pressable>
-          </View>
-        </View>
-
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Greeting Section */}
-          <View style={styles.greetingSection}>
-            <Text style={styles.greetingTitle}>Hello, Explorer!</Text>
-            <Text style={styles.greetingSubtitle}>
-              Let's learn something new today.
-            </Text>
+          {/* Brand + Greeting */}
+          <Text style={styles.brand}>WORD CONNECT</Text>
+          <View style={styles.brandPill}>
+            <Text style={styles.brandPillText}>MULTILINGUAL</Text>
           </View>
 
-          {/* Hero Banner: Today's Challenge */}
+          <Text style={styles.greeting}>{t("home.greeting", { name: state.displayName })}</Text>
+          <Text style={styles.subGreeting}>{t("home.subGreeting")}</Text>
+
+          {/* Today's Challenge */}
           <Pressable
             onPress={() => navigation.navigate("Daily")}
-            style={({ pressed }) => [
-              styles.heroCard,
-              pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] },
-            ]}
+            style={({ pressed }) => [styles.challengeCard, pressed && { opacity: 0.94 }]}
           >
-            <View style={styles.heroLeftIcon}>
+            <View style={styles.challengeIconWrap}>
               <Ionicons name="leaf" size={22} color={colors.forest} />
             </View>
-            <View style={styles.heroContent}>
-              <Text style={styles.heroTitle}>Today's Challenge</Text>
-              <Text style={styles.heroDesc}>Find 8 hidden words in 2 minutes!</Text>
-              {/* Progress bar */}
-              <View style={styles.progressRow}>
-                <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: "45%" }]} />
-                </View>
-                <Text style={styles.progressCount}>0/8 words</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.challengeTitle}>{t("home.todaysChallenge")}</Text>
+              <Text style={styles.challengeSubtitle}>
+                {t("home.findWords", { count: challenge.words.length, minutes: Math.round(challenge.timeLimitSeconds / 60) })}
+              </Text>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${Math.min(100, (foundToday / challenge.words.length) * 100)}%` },
+                  ]}
+                />
               </View>
+              <Text style={styles.progressLabel}>{t("home.wordsProgress", { found: foundToday, total: challenge.words.length })}</Text>
             </View>
-            <View style={styles.heroArrowBtn}>
-              <Ionicons name="chevron-forward" size={18} color={colors.white} />
-            </View>
+            <Ionicons name="chevron-forward-circle" size={26} color={colors.forest} />
           </Pressable>
 
-          {/* 2x2 Feature Grid */}
-          <View style={styles.featureGrid}>
-            {/* Card 1: Daily Challenge */}
-            <Pressable
-              onPress={() => navigation.navigate("Daily")}
-              style={({ pressed }) => [
-                styles.gridCard,
-                pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-              ]}
-            >
-              <View style={styles.cardIconWrap}>
-                <Ionicons name="book-outline" size={24} color={colors.forest} />
-              </View>
-              <Text style={styles.cardTitle}>Daily Challenge</Text>
-              <Text style={styles.cardSubtitle}>New puzzles every day</Text>
-              <View style={styles.cardArrow}>
-                <Ionicons name="chevron-forward" size={14} color={colors.forest} />
-              </View>
-            </Pressable>
-
-            {/* Card 2: Play Now */}
-            <Pressable
-              onPress={() => navigation.navigate("Play")}
-              style={({ pressed }) => [
-                styles.gridCard,
-                pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-              ]}
-            >
-              <View style={styles.cardIconWrap}>
-                <Ionicons name="game-controller-outline" size={24} color={colors.forest} />
-              </View>
-              <Text style={styles.cardTitle}>Play Now</Text>
-              <Text style={styles.cardSubtitle}>Choose your level</Text>
-              <View style={styles.cardArrow}>
-                <Ionicons name="chevron-forward" size={14} color={colors.forest} />
-              </View>
-            </Pressable>
-
-            {/* Card 3: Brain Training */}
-            <Pressable
-              onPress={() => navigation.navigate("Play")}
-              style={({ pressed }) => [
-                styles.gridCard,
-                pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-              ]}
-            >
-              <View style={styles.cardIconWrap}>
-                <Ionicons name="sparkles-outline" size={24} color={colors.forest} />
-              </View>
-              <Text style={styles.cardTitle}>Brain Training</Text>
-              <Text style={styles.cardSubtitle}>Sharpen your mind</Text>
-              <View style={styles.cardArrow}>
-                <Ionicons name="chevron-forward" size={14} color={colors.forest} />
-              </View>
-            </Pressable>
-
-            {/* Card 4: Multiple Languages */}
-            <Pressable
-              onPress={() => navigation.navigate("LanguageSelectFromHome")}
-              style={({ pressed }) => [
-                styles.gridCard,
-                pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-              ]}
-            >
-              <View style={styles.cardIconWrap}>
-                <Ionicons name="globe-outline" size={24} color={colors.forest} />
-              </View>
-              <Text style={styles.cardTitle}>Multiple Languages</Text>
-              <Text style={styles.cardSubtitle}>Explore new words</Text>
-              <View style={styles.cardArrow}>
-                <Ionicons name="chevron-forward" size={14} color={colors.forest} />
-              </View>
-            </Pressable>
+          {/* 2x2 Grid */}
+          <View style={styles.grid}>
+            {GRID_ITEMS.map((item) => (
+              <Pressable
+                key={item.key}
+                onPress={() => goToTab(item.tab)}
+                style={({ pressed }) => [styles.gridCard, pressed && { opacity: 0.92, transform: [{ scale: 0.985 }] }]}
+              >
+                <View style={styles.gridIconCircle}>
+                  <Ionicons name={item.icon} size={22} color={colors.forest} />
+                </View>
+                <Text style={styles.gridTitle}>{item.title}</Text>
+                <Text style={styles.gridSubtitle}>{item.subtitle}</Text>
+                <View style={styles.gridChevronWrap}>
+                  <Ionicons name="chevron-forward" size={14} color={colors.forest} />
+                </View>
+              </Pressable>
+            ))}
           </View>
 
           {/* Progress Card */}
           <Pressable
             onPress={() => navigation.navigate("Profile")}
-            style={({ pressed }) => [
-              styles.progressCard,
-              pressed && { opacity: 0.95 },
-            ]}
+            style={({ pressed }) => [styles.progressCard, pressed && { opacity: 0.94 }]}
           >
-            <View style={styles.progressHeader}>
-              <View style={styles.progressStarWrap}>
-                <Ionicons name="star" size={16} color={colors.forest} />
+            <View style={styles.progressHeaderRow}>
+              <View style={styles.progressIconCircle}>
+                <Ionicons name="star" size={18} color={colors.forest} />
               </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.progressHeaderTitle}>Your Progress</Text>
-                <Text style={styles.progressHeaderSubtitle}>
-                  Keep going. You're doing great!
-                </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.progressCardTitle}>{t("home.progressTitle")}</Text>
+                <Text style={styles.progressCardSubtitle}>{t("home.progressSubtitle")}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              <Ionicons name="chevron-forward-circle" size={26} color={colors.forest} />
             </View>
-
-            <View style={styles.statsDivider} />
 
             <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Ionicons name="bar-chart-outline" size={18} color={colors.forest} />
-                <Text style={styles.statValue}>{Math.max(unlocked, 12)}</Text>
-                <Text style={styles.statLabel}>Levels</Text>
-              </View>
-              <View style={styles.statSeparator} />
-
-              <View style={styles.statItem}>
-                <Ionicons name="book-outline" size={18} color={colors.forest} />
-                <Text style={styles.statValue}>{unlocked * 3}</Text>
-                <Text style={styles.statLabel}>Words</Text>
-              </View>
-              <View style={styles.statSeparator} />
-
-              <View style={styles.statItem}>
-                <Ionicons name="trophy-outline" size={18} color={colors.forest} />
-                <Text style={styles.statValue}>6</Text>
-                <Text style={styles.statLabel}>Puzzles</Text>
-              </View>
-              <View style={styles.statSeparator} />
-
-              <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={18} color={colors.forest} />
-                <Text style={styles.statValue}>2h</Text>
-                <Text style={styles.statLabel}>Learning</Text>
-              </View>
+              <StatCol icon="trending-up" value={Math.max(0, (state.unlockedLevel[state.language] || 1) - 1)} label={t("home.stats.levels")} />
+              <StatCol icon="book" value={wordsFound} label={t("home.stats.words")} />
+              <StatCol icon="trophy" value={levelsPlayed} label={t("home.stats.puzzles")} />
+              <StatCol icon="time" value={`${learnedHours}h ${learnedMinsRemainder}m`} label={t("home.stats.learning")} small />
             </View>
           </Pressable>
-        </ScrollView>
+        </Animated.View>
+      </ScrollView>
+
+        {/* ============================================================ */}
+        {/* QUICK ACTION DRAWER / MODAL */}
+        {/* ============================================================ */}
+        <Modal
+          visible={menuModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setMenuModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.menuSheet}>
+              {/* Header */}
+              <View style={styles.menuHeader}>
+                <View style={styles.menuHeaderTitleWrap}>
+                  <Ionicons name="compass" size={22} color={colors.goldLight} style={{ marginRight: 8 }} />
+                  <Text style={styles.menuHeaderTitle}>Quick Menu</Text>
+                </View>
+                <Pressable
+                  hitSlop={10}
+                  onPress={() => setMenuModalVisible(false)}
+                  style={styles.closeBtn}
+                >
+                  <Ionicons name="close" size={20} color={colors.cream} />
+                </Pressable>
+              </View>
+
+              {/* Player Profile Summary */}
+              <View style={styles.menuUserCard}>
+                <View style={styles.menuAvatarCircle}>
+                  <Ionicons
+                    name={AVATAR_ICONS[state.avatar] || "person"}
+                    size={22}
+                    color={colors.white}
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.menuUserName}>{state.displayName || "Explorer"}</Text>
+                  <Text style={styles.menuUserSub}>
+                    Level {state.unlockedLevel[state.language] || 1} • {currentLangObj.name}
+                  </Text>
+                </View>
+                <View style={styles.menuCoinPill}>
+                  <Ionicons name="disc" size={14} color={colors.gold} style={{ marginRight: 4 }} />
+                  <Text style={styles.menuCoinText}>{state.coins}</Text>
+                </View>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380 }}>
+                {/* Navigation Links */}
+                <View style={styles.menuSection}>
+                  <Text style={styles.menuSectionTitle}>NAVIGATION</Text>
+
+                  {/* Language */}
+                  <Pressable
+                    style={styles.menuRow}
+                    onPress={() => {
+                      setMenuModalVisible(false);
+                      navigation.navigate("LanguageSelectFromHome");
+                    }}
+                  >
+                    <View style={styles.menuRowIconWrap}>
+                      <Ionicons name="globe-outline" size={18} color={colors.goldLight} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.menuRowLabel}>Language</Text>
+                      <Text style={styles.menuRowSub}>{currentLangObj.name}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                  </Pressable>
+
+                  {/* Leaderboard */}
+                  <Pressable
+                    style={styles.menuRow}
+                    onPress={() => {
+                      setMenuModalVisible(false);
+                      navigation.navigate("Leaderboard");
+                    }}
+                  >
+                    <View style={styles.menuRowIconWrap}>
+                      <Ionicons name="trophy-outline" size={18} color={colors.goldLight} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.menuRowLabel}>Global Leaderboard</Text>
+                      <Text style={styles.menuRowSub}>See top ranks worldwide</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                  </Pressable>
+
+                  {/* World Map */}
+                  <Pressable
+                    style={styles.menuRow}
+                    onPress={() => {
+                      setMenuModalVisible(false);
+                      navigation.navigate("WorldMap");
+                    }}
+                  >
+                    <View style={styles.menuRowIconWrap}>
+                      <Ionicons name="map-outline" size={18} color={colors.goldLight} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.menuRowLabel}>World Map</Text>
+                      <Text style={styles.menuRowSub}>6 Alpine Realms & 300 Levels</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                  </Pressable>
+
+                  {/* Profile & Customization */}
+                  <Pressable
+                    style={styles.menuRow}
+                    onPress={() => {
+                      setMenuModalVisible(false);
+                      navigation.navigate("Profile");
+                    }}
+                  >
+                    <View style={styles.menuRowIconWrap}>
+                      <Ionicons name="person-outline" size={18} color={colors.goldLight} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.menuRowLabel}>Profile & Customization</Text>
+                      <Text style={styles.menuRowSub}>Edit avatar, badges & stats</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                  </Pressable>
+                </View>
+
+                {/* Audio & Settings Section */}
+                <View style={styles.menuSection}>
+                  <Text style={styles.menuSectionTitle}>AUDIO SETTINGS</Text>
+
+                  <View style={styles.menuRow}>
+                    <View style={styles.menuRowIconWrap}>
+                      <Ionicons
+                        name={state.settings?.soundEffects ? "volume-high-outline" : "volume-mute-outline"}
+                        size={18}
+                        color={colors.goldLight}
+                      />
+                    </View>
+                    <Text style={[styles.menuRowLabel, { flex: 1 }]}>Sound Effects</Text>
+                    <Switch
+                      value={state.settings?.soundEffects ?? true}
+                      onValueChange={(val) => updateSetting("soundEffects", val)}
+                      trackColor={{ false: "rgba(255,255,255,0.2)", true: colors.gold }}
+                      thumbColor={colors.white}
+                    />
+                  </View>
+
+                  <View style={styles.menuRow}>
+                    <View style={styles.menuRowIconWrap}>
+                      <Ionicons
+                        name={state.settings?.music ? "musical-notes-outline" : "musical-note-outline"}
+                        size={18}
+                        color={colors.goldLight}
+                      />
+                    </View>
+                    <Text style={[styles.menuRowLabel, { flex: 1 }]}>Ambient Music</Text>
+                    <Switch
+                      value={state.settings?.music ?? true}
+                      onValueChange={(val) => updateSetting("music", val)}
+                      trackColor={{ false: "rgba(255,255,255,0.2)", true: colors.gold }}
+                      thumbColor={colors.white}
+                    />
+                  </View>
+                </View>
+
+                {/* Guide & Rules */}
+                <View style={styles.menuSection}>
+                  <Text style={styles.menuSectionTitle}>HELP & ABOUT</Text>
+
+                  <Pressable
+                    style={styles.menuRow}
+                    onPress={() => {
+                      setMenuModalVisible(false);
+                      setGuideModalVisible(true);
+                    }}
+                  >
+                    <View style={styles.menuRowIconWrap}>
+                      <Ionicons name="help-circle-outline" size={18} color={colors.goldLight} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.menuRowLabel}>How to Play</Text>
+                      <Text style={styles.menuRowSub}>Rules, hints & bonus words</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                  </Pressable>
+
+                  {/* Auth Actions */}
+                  {authUser ? (
+                    <Pressable style={styles.menuRow} onPress={handleLogout}>
+                      <View style={[styles.menuRowIconWrap, { backgroundColor: "rgba(235, 87, 87, 0.2)" }]}>
+                        <Ionicons name="log-out-outline" size={18} color="#FF6B6B" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.menuRowLabel, { color: "#FF6B6B" }]}>Log Out</Text>
+                        <Text style={styles.menuRowSub}>Signed in as {authUser.email || authUser.displayName}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      style={styles.menuRow}
+                      onPress={() => {
+                        setMenuModalVisible(false);
+                        navigation.navigate("Login");
+                      }}
+                    >
+                      <View style={styles.menuRowIconWrap}>
+                        <Ionicons name="cloud-upload-outline" size={18} color={colors.goldLight} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.menuRowLabel}>Sign In / Sync Account</Text>
+                        <Text style={styles.menuRowSub}>Backup progress to cloud</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+                    </Pressable>
+                  )}
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ============================================================ */}
+        {/* HOW TO PLAY GUIDE MODAL */}
+        {/* ============================================================ */}
+        <Modal
+          visible={guideModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setGuideModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.guideModalCard}>
+              <View style={styles.guideHeader}>
+                <Ionicons name="sparkles" size={24} color={colors.goldLight} style={{ marginRight: 8 }} />
+                <Text style={styles.guideHeaderTitle}>How to Play Word Connect</Text>
+              </View>
+
+              <View style={styles.guideStepRow}>
+                <View style={styles.guideStepNum}>
+                  <Text style={styles.guideStepNumText}>1</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guideStepTitle}>Trace Letters</Text>
+                  <Text style={styles.guideStepDesc}>
+                    Swipe smoothly across letters on the wheel to spell words. Letters highlight in gold as you drag!
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.guideStepRow}>
+                <View style={styles.guideStepNum}>
+                  <Text style={styles.guideStepNumText}>2</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guideStepTitle}>Fill the Crossword Grid</Text>
+                  <Text style={styles.guideStepDesc}>
+                    Valid puzzle words snap into the crossword slots. Extra valid words earn bonus gold coins!
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.guideStepRow}>
+                <View style={styles.guideStepNum}>
+                  <Text style={styles.guideStepNumText}>3</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guideStepTitle}>Use Free Shuffles & Hints</Text>
+                  <Text style={styles.guideStepDesc}>
+                    Shuffle letters to gain a fresh perspective, or use Letter Hints and Magic Wands when stuck.
+                  </Text>
+                </View>
+              </View>
+
+              <PrimaryButton
+                title="Got It! Let's Play"
+                onPress={() => setGuideModalVisible(false)}
+                style={{ marginTop: 12 }}
+              />
+            </View>
+          </View>
+        </Modal>
+
+        {/* Luxury Logout Confirmation Modal */}
+        <LuxuryModal
+          visible={logoutDialogVisible}
+          onClose={() => setLogoutDialogVisible(false)}
+          title={t("profile.logOutConfirmTitle") || "Log Out"}
+          message={
+            t("profile.logOutConfirmMsg") ||
+            "Are you sure you want to log out? Your cloud and local progress are safely preserved."
+          }
+          icon="log-out-outline"
+          iconColor="#FF6B6B"
+          buttons={[
+            {
+              text: t("game.cancel") || "Cancel",
+              style: "cancel",
+              onPress: () => setLogoutDialogVisible(false),
+            },
+            {
+              text: t("profile.logOut") || "Log Out",
+              style: "destructive",
+              onPress: async () => {
+                setLogoutDialogVisible(false);
+                setMenuModalVisible(false);
+                if (backendConfigured) await logout();
+                navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+              },
+            },
+          ]}
+        />
       </SafeAreaView>
-    </ImageBackground>
+    </ScreenBG>
+  );
+}
+
+function StatCol({ icon, value, label, small }) {
+  return (
+    <View style={styles.statCol}>
+      <Ionicons name={icon} size={16} color={colors.forest} />
+      <Text style={[styles.statValue, small && { fontSize: 13 }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.forestDark,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(10, 36, 23, 0.32)",
-  },
-  safeArea: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: colors.forestMint },
+  safeArea: { flex: 1 },
+  scrollContent: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 115 },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 18,
-    paddingTop: 8,
+    marginBottom: 18,
   },
   menuBtn: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(251, 247, 236, 0.95)",
+    backgroundColor: "rgba(10, 41, 26, 0.82)",
+    borderWidth: 1.5,
+    borderColor: "rgba(246, 211, 101, 0.6)",
     alignItems: "center",
     justifyContent: "center",
-    ...shadow,
+    ...glowShadow,
   },
-  brandCrest: {
+  cloudBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(10, 41, 26, 0.7)",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
     borderRadius: radii.pill,
-    borderWidth: 1.2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
     borderColor: colors.cardBorderGold,
   },
-  brandCrestTitle: {
-    color: colors.gold,
-    fontWeight: "900",
-    fontSize: 12,
-    letterSpacing: 1.5,
+  cloudDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    marginRight: 6,
   },
-  brandCrestSubtitle: {
+  cloudDotLive: {
+    backgroundColor: "#2ECC71",
+  },
+  cloudDotOffline: {
+    backgroundColor: "#F39C12",
+  },
+  cloudText: {
     color: colors.cream,
+    fontSize: 11,
     fontWeight: "700",
-    fontSize: 7.5,
-    letterSpacing: 1.5,
   },
-  topRightGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  streakBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(251, 247, 236, 0.95)",
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: radii.pill,
-    marginRight: 8,
-    ...shadow,
-  },
-  streakCount: {
-    fontSize: 12,
-    fontWeight: "900",
-    color: colors.forestDark,
-    lineHeight: 13,
-  },
-  streakLabel: {
-    fontSize: 8,
-    fontWeight: "700",
-    color: colors.textMuted,
-    lineHeight: 9,
-  },
+  rightGroup: { alignItems: "flex-end" },
   avatarWrap: {
-    position: "relative",
-  },
-  avatarInner: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.forest,
-    borderWidth: 2,
-    borderColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.white,
     ...shadow,
   },
-  onlineDot: {
+  avatarDot: {
     position: "absolute",
-    right: 0,
-    bottom: 0,
+    right: -1,
+    bottom: -1,
     width: 11,
     height: 11,
     borderRadius: 6,
-    backgroundColor: "#2ECC71",
-    borderWidth: 2,
+    backgroundColor: "#3FD16B",
+    borderWidth: 1.5,
     borderColor: colors.white,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 28,
-  },
-  greetingSection: {
-    marginBottom: 16,
-  },
-  greetingTitle: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: colors.white,
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
-  },
-  greetingSubtitle: {
-    fontSize: 15,
-    color: colors.cream,
-    marginTop: 2,
-    textShadowColor: "rgba(0,0,0,0.4)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  heroCard: {
+  streakBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(251, 247, 236, 0.95)",
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 8,
+    ...shadow,
+  },
+  streakText: { color: colors.forestDark, fontWeight: "800", fontSize: 11, marginLeft: 4 },
+  brand: {
+    fontSize: 30,
+    fontWeight: "900",
+    color: colors.forestDark,
+    textAlign: "center",
+    letterSpacing: 0.5,
+  },
+  brandPill: {
+    alignSelf: "center",
+    backgroundColor: colors.forest,
+    borderRadius: radii.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 3,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  brandPillText: { color: colors.white, fontWeight: "800", fontSize: 11, letterSpacing: 1.5 },
+  greeting: { fontSize: 20, fontWeight: "900", color: colors.forestDark },
+  subGreeting: { fontSize: 13, color: colors.textMuted, marginTop: 2, marginBottom: 16 },
+  challengeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: radii.lg,
     padding: 16,
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
     marginBottom: 16,
     ...shadow,
   },
-  heroLeftIcon: {
+  challengeIconWrap: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(30, 107, 69, 0.15)",
+    borderRadius: 14,
+    backgroundColor: colors.forestMint,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
+    marginRight: 12,
   },
-  heroContent: {
-    flex: 1,
-  },
-  heroTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: colors.forestDark,
-  },
-  heroDesc: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  progressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-  },
+  challengeTitle: { fontSize: 15, fontWeight: "800", color: colors.forestDark },
+  challengeSubtitle: { fontSize: 12, color: colors.textMuted, marginTop: 2, marginBottom: 8 },
   progressTrack: {
-    flex: 1,
-    height: 7,
-    backgroundColor: "rgba(30, 107, 69, 0.15)",
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(15,58,38,0.12)",
     overflow: "hidden",
-    marginRight: 8,
   },
-  progressFill: {
-    height: "100%",
-    backgroundColor: colors.forest,
-    borderRadius: 4,
-  },
-  progressCount: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.forestDark,
-  },
-  heroArrowBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.forest,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 10,
-  },
-  featureGrid: {
+  progressFill: { height: 6, backgroundColor: colors.forest, borderRadius: 3 },
+  progressLabel: { fontSize: 11, color: colors.textMuted, marginTop: 4, fontWeight: "700" },
+  grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
@@ -435,108 +692,244 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     width: "48%",
-    backgroundColor: "rgba(251, 247, 236, 0.95)",
+    backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: radii.lg,
     padding: 16,
-    borderWidth: 1.2,
-    borderColor: "rgba(255, 255, 255, 0.7)",
-    marginBottom: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
     position: "relative",
     ...shadow,
   },
-  cardIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(30, 107, 69, 0.14)",
+  gridIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.forestMint,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: colors.forestDark,
-    lineHeight: 18,
-  },
-  cardSubtitle: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: "600",
-    marginTop: 4,
-  },
-  cardArrow: {
+  gridTitle: { fontSize: 14, fontWeight: "800", color: colors.forestDark },
+  gridSubtitle: { fontSize: 11, color: colors.textMuted, marginTop: 3 },
+  gridChevronWrap: {
     position: "absolute",
     right: 12,
     bottom: 12,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "rgba(30, 107, 69, 0.12)",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.forestMint,
     alignItems: "center",
     justifyContent: "center",
   },
   progressCard: {
-    backgroundColor: "rgba(251, 247, 236, 0.95)",
+    backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: radii.lg,
     padding: 16,
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
     ...shadow,
   },
-  progressHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  progressStarWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(30, 107, 69, 0.14)",
+  progressHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
+  progressIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.forestMint,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 12,
   },
-  progressHeaderTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: colors.forestDark,
+  progressCardTitle: { fontSize: 15, fontWeight: "800", color: colors.forestDark },
+  progressCardSubtitle: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  statsRow: { flexDirection: "row", justifyContent: "space-between" },
+  statCol: { alignItems: "center", flex: 1 },
+  statValue: { fontSize: 16, fontWeight: "900", color: colors.forestDark, marginTop: 4 },
+  statLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2, fontWeight: "700" },
+
+  /* Modal Sheets */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(5, 20, 14, 0.76)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
   },
-  progressHeaderSubtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: "600",
-    marginTop: 2,
+  menuSheet: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#0D2C1E",
+    borderRadius: radii.xl,
+    padding: 20,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorderGold,
+    ...shadow,
   },
-  statsDivider: {
-    height: 1,
-    backgroundColor: "rgba(15, 58, 38, 0.1)",
-    marginVertical: 14,
-  },
-  statsRow: {
+  menuHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
   },
-  statItem: {
-    flex: 1,
+  menuHeaderTitleWrap: {
+    flexDirection: "row",
     alignItems: "center",
   },
-  statValue: {
-    fontSize: 17,
+  menuHeaderTitle: {
+    color: colors.white,
+    fontSize: 18,
     fontWeight: "900",
-    color: colors.forestDark,
-    marginTop: 4,
   },
-  statLabel: {
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuUserCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(10, 41, 26, 0.9)",
+    borderRadius: radii.md,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(246, 211, 101, 0.3)",
+    marginBottom: 16,
+  },
+  menuAvatarCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.forest,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: colors.goldLight,
+  },
+  menuUserName: {
+    color: colors.white,
+    fontWeight: "800",
+    fontSize: 15,
+  },
+  menuUserSub: {
+    color: colors.goldLight,
     fontSize: 11,
     fontWeight: "700",
-    color: colors.textMuted,
     marginTop: 2,
   },
-  statSeparator: {
-    width: 1,
-    height: 28,
-    backgroundColor: "rgba(15, 58, 38, 0.12)",
+  menuCoinPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+    borderRadius: radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.cardBorderGold,
+  },
+  menuCoinText: {
+    color: colors.goldLight,
+    fontWeight: "900",
+    fontSize: 13,
+  },
+  menuSection: {
+    marginBottom: 16,
+  },
+  menuSectionTitle: {
+    color: colors.goldLight,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+  },
+  menuRowIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(246, 211, 101, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  menuRowLabel: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  menuRowSub: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    marginTop: 1,
+  },
+
+  /* Guide Modal */
+  guideModalCard: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#0D2C1E",
+    borderRadius: radii.xl,
+    padding: 22,
+    borderWidth: 1.5,
+    borderColor: colors.cardBorderGold,
+    ...shadow,
+  },
+  guideHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  guideHeaderTitle: {
+    color: colors.white,
+    fontSize: 17,
+    fontWeight: "900",
+  },
+  guideStepRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 14,
+  },
+  guideStepNum: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    marginTop: 2,
+  },
+  guideStepNumText: {
+    color: colors.forestDark,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  guideStepTitle: {
+    color: colors.white,
+    fontWeight: "800",
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  guideStepDesc: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    lineHeight: 17,
   },
 });
-

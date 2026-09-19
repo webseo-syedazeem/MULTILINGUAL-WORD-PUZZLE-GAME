@@ -6,56 +6,84 @@ import {
   Pressable,
   ImageBackground,
   ScrollView,
-  Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BackButton, CoinBadge } from "../components/Bits";
 import { colors, radii, shadow, glowShadow } from "../theme";
 import { useGame } from "../context/GameContext";
+import { useT } from "../i18n/useT";
 
-const BG_IMAGE = require("../../assets/images/clean_nature_bg.jpg");
-
-const TABS = ["Coins", "Hints", "Boosters"];
-
-const COIN_PACKS = [
-  { id: "c1", icon: "disc", iconColor: colors.gold, title: "Coin Pack", desc: "500 coins", price: "$2.99", coins: 500 },
-  { id: "c2", icon: "albums", iconColor: colors.gold, title: "Coin Pack", desc: "1,200 coins", price: "$5.99", badge: "Popular", coins: 1200 },
-  { id: "c3", icon: "wallet", iconColor: colors.gold, title: "Coin Pack", desc: "2,500 coins", price: "$9.99", badge: "Best Value", coins: 2500 },
-];
-
-const HINT_PACKS = [
-  { id: "h1", icon: "bulb-outline", iconColor: colors.gold, title: "Hint Pack", desc: "5 hints", price: "$1.99", hints: 5 },
-  { id: "h2", icon: "bulb", iconColor: colors.gold, title: "Hint Pack", desc: "15 hints", price: "$3.99", badge: "Popular", hints: 15 },
-];
-
-const BOOSTER_PACKS = [
-  { id: "b1", icon: "flash", iconColor: colors.gold, title: "Super Shuffle", desc: "10 free shuffles", price: "$0.99" },
-  { id: "b2", icon: "ban-outline", iconColor: "#FF5E5E", title: "Remove Ads", desc: "Enjoy ad-free play", price: "$4.99" },
-];
+const BG_IMAGE = require("../../assets/images/mountain_alps.jpg");
 
 export default function ShopScreen({ navigation }) {
   const { state, addCoins } = useGame();
+  const { t } = useT();
   const [activeTab, setActiveTab] = useState("Coins");
   const [dailyClaimed, setDailyClaimed] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMeta, setToastMeta] = useState({ title: "", message: "", amount: 0 });
+
+  const TABS = [
+    { key: "Coins", label: t("shop.tabs.coins") },
+    { key: "Hints", label: t("shop.tabs.hints") },
+    { key: "Boosters", label: t("shop.tabs.boosters") },
+  ];
+
+  const COIN_PACKS = [
+    { id: "c1", icon: "disc", title: t("shop.coinPack"), desc: t("shop.coinsDesc", { count: 500 }), price: "$2.99", coins: 500 },
+    { id: "c2", icon: "albums", title: t("shop.coinPack"), desc: t("shop.coinsDesc", { count: 1200 }), price: "$5.99", badge: t("shop.popular"), coins: 1200 },
+    { id: "c3", icon: "wallet", title: t("shop.coinPack"), desc: t("shop.coinsDesc", { count: 2500 }), price: "$9.99", badge: t("shop.bestValue"), coins: 2500 },
+  ];
+
+  const HINT_PACKS = [
+    { id: "h1", icon: "bulb-outline", title: t("shop.hintPack"), desc: t("shop.hintsDesc", { count: 5 }), price: "$1.99" },
+    { id: "h2", icon: "bulb", title: t("shop.hintPack"), desc: t("shop.hintsDesc", { count: 15 }), price: "$3.99", badge: t("shop.popular") },
+  ];
+
+  const BOOSTER_PACKS = [
+    { id: "b1", icon: "flash", title: t("shop.superShuffle"), desc: t("shop.shufflesDesc", { count: 10 }), price: "$0.99" },
+    { id: "b2", icon: "ban-outline", iconColor: "#FF5E5E", title: t("shop.removeAds"), desc: t("shop.removeAdsDesc"), price: "$4.99" },
+  ];
 
   const buyCoins = (amount, price) => {
     addCoins(amount);
-    Alert.alert("🎉 Purchase Successful", `${amount} coins added for ${price} (demo simulated purchase).`);
+    setToastMeta({
+      title: t("shop.purchaseSuccessTitle"),
+      message: t("shop.purchaseSuccessMsg", { amount, price }),
+      amount,
+    });
+    setToastVisible(true);
   };
 
   const buyOther = (title, price) => {
-    Alert.alert("🎉 Item Activated", `${title} activated for ${price} (demo simulated purchase).`);
+    setToastMeta({
+      title: t("shop.itemActivatedTitle"),
+      message: t("shop.itemActivatedMsg", { title, price }),
+      amount: 0,
+    });
+    setToastVisible(true);
   };
 
   const claimDaily = () => {
     if (dailyClaimed) {
-      Alert.alert("Already Claimed", "Come back tomorrow for your next reward!");
+      setToastMeta({
+        title: t("shop.alreadyClaimedTitle"),
+        message: t("shop.alreadyClaimedMsg"),
+        amount: 0,
+      });
+      setToastVisible(true);
       return;
     }
     addCoins(50);
     setDailyClaimed(true);
-    Alert.alert("🎁 Daily Reward Claimed", "+50 coins added to your balance!");
+    setToastMeta({
+      title: t("shop.dailyClaimedTitle"),
+      message: t("shop.dailyClaimedMsg"),
+      amount: 50,
+    });
+    setToastVisible(true);
   };
 
   return (
@@ -64,11 +92,11 @@ export default function ShopScreen({ navigation }) {
       <SafeAreaView style={styles.safeArea}>
         {/* Top Header */}
         <View style={styles.header}>
-          <BackButton onPress={() => navigation.goBack()} />
+          <BackButton onPress={() => (navigation.canGoBack && navigation.canGoBack() ? navigation.goBack() : navigation.navigate("MainTabs", { screen: "Home" }))} />
 
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>Shop</Text>
-            <Text style={styles.headerSubtitle}>Get hints & power-ups</Text>
+            <Text style={styles.headerTitle}>{t("shop.title")}</Text>
+            <Text style={styles.headerSubtitle}>{t("shop.subtitle")}</Text>
           </View>
 
           <CoinBadge coins={state.coins} />
@@ -77,15 +105,15 @@ export default function ShopScreen({ navigation }) {
         {/* Filter Tabs */}
         <View style={styles.tabsWrap}>
           {TABS.map((tab) => {
-            const isActive = activeTab === tab;
+            const isActive = activeTab === tab.key;
             return (
               <Pressable
-                key={tab}
-                onPress={() => setActiveTab(tab)}
+                key={tab.key}
+                onPress={() => setActiveTab(tab.key)}
                 style={[styles.tabBtn, isActive && styles.tabBtnActive]}
               >
                 <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {tab}
+                  {tab.label}
                 </Text>
               </Pressable>
             );
@@ -96,8 +124,8 @@ export default function ShopScreen({ navigation }) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Items according to active tab */}
-          {(activeTab === "Coins" || activeTab === "Coins") && (
+          {/* Only render active category */}
+          {activeTab === "Coins" && (
             <View style={styles.section}>
               {COIN_PACKS.map((item) => (
                 <View key={item.id} style={styles.packCard}>
@@ -107,7 +135,7 @@ export default function ShopScreen({ navigation }) {
                     </View>
                   )}
                   <View style={styles.packIconCircle}>
-                    <Ionicons name={item.icon} size={28} color={item.iconColor} />
+                    <Ionicons name={item.icon} size={28} color={item.iconColor || colors.gold} />
                   </View>
                   <View style={styles.packDetails}>
                     <Text style={styles.packTitle}>{item.title}</Text>
@@ -127,7 +155,7 @@ export default function ShopScreen({ navigation }) {
             </View>
           )}
 
-          {(activeTab === "Hints" || activeTab === "Coins") && (
+          {activeTab === "Hints" && (
             <View style={styles.section}>
               {HINT_PACKS.map((item) => (
                 <View key={item.id} style={styles.packCard}>
@@ -137,7 +165,7 @@ export default function ShopScreen({ navigation }) {
                     </View>
                   )}
                   <View style={styles.packIconCircle}>
-                    <Ionicons name={item.icon} size={28} color={item.iconColor} />
+                    <Ionicons name={item.icon} size={28} color={item.iconColor || colors.gold} />
                   </View>
                   <View style={styles.packDetails}>
                     <Text style={styles.packTitle}>{item.title}</Text>
@@ -157,12 +185,12 @@ export default function ShopScreen({ navigation }) {
             </View>
           )}
 
-          {(activeTab === "Boosters" || activeTab === "Coins") && (
+          {activeTab === "Boosters" && (
             <View style={styles.section}>
               {BOOSTER_PACKS.map((item) => (
                 <View key={item.id} style={styles.packCard}>
                   <View style={styles.packIconCircle}>
-                    <Ionicons name={item.icon} size={28} color={item.iconColor} />
+                    <Ionicons name={item.icon} size={28} color={item.iconColor || colors.gold} />
                   </View>
                   <View style={styles.packDetails}>
                     <Text style={styles.packTitle}>{item.title}</Text>
@@ -194,17 +222,48 @@ export default function ShopScreen({ navigation }) {
               <Ionicons name="gift" size={32} color={colors.gold} />
             </View>
             <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={styles.rewardTitle}>Daily Reward</Text>
+              <Text style={styles.rewardTitle}>{t("shop.dailyReward")}</Text>
               <Text style={styles.rewardSubtitle}>
-                {dailyClaimed ? "Come back tomorrow!" : "Claim +50 free coins now!"}
+                {dailyClaimed ? t("shop.comeBackTomorrow") : t("shop.claimNow")}
               </Text>
             </View>
             <View style={[styles.claimBtn, dailyClaimed && styles.claimBtnDone]}>
-              <Text style={styles.claimBtnText}>{dailyClaimed ? "Claimed" : "Claim"}</Text>
+              <Text style={styles.claimBtnText}>{dailyClaimed ? t("shop.claimed") : t("shop.claim")}</Text>
             </View>
           </Pressable>
         </ScrollView>
       </SafeAreaView>
+
+      <Modal
+        visible={toastVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setToastVisible(false)}
+      >
+        <Pressable style={styles.toastOverlay} onPress={() => setToastVisible(false)}>
+          <Pressable style={styles.toastCard} onPress={() => {}}>
+            <View style={styles.toastHeader}>
+              <View style={styles.toastIconWrap}>
+                <Ionicons name="gift" size={22} color={colors.goldLight} />
+              </View>
+              <Text style={styles.toastTitle}>{toastMeta.title}</Text>
+            </View>
+
+            <Text style={styles.toastBody}>{toastMeta.message}</Text>
+
+            <View style={styles.toastFooter}>
+              {toastMeta.amount > 0 ? (
+                <Text style={styles.toastAmount}>+{toastMeta.amount} coins</Text>
+              ) : (
+                <Text style={styles.toastAmount}>Confirmed</Text>
+              )}
+              <Pressable onPress={() => setToastVisible(false)} style={styles.toastButton}>
+                <Text style={styles.toastButtonText}>OK</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -282,7 +341,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 14,
-    paddingBottom: 28,
+    paddingBottom: 115,
   },
   section: {
     gap: 12,
@@ -402,5 +461,71 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
   },
+  toastOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.48)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 22,
+  },
+  toastCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "rgba(251, 247, 236, 0.96)",
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "rgba(15, 58, 38, 0.12)",
+    ...shadow,
+  },
+  toastHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  toastIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(245, 196, 81, 0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  toastTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: colors.text,
+    flex: 1,
+  },
+  toastBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textMuted,
+    fontWeight: "600",
+  },
+  toastFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 18,
+  },
+  toastAmount: {
+    color: colors.forestDark,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  toastButton: {
+    backgroundColor: colors.forestLight,
+    borderRadius: radii.pill,
+    paddingVertical: 9,
+    paddingHorizontal: 21,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  toastButtonText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "800",
+  },
 });
-

@@ -28,4 +28,3 @@ const styles = StyleSheet.create({
   tint: { ...StyleSheet.absoluteFillObject },
   content: { flex: 1 },
 });
-

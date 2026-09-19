@@ -12,54 +12,62 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import PrimaryButton from "../components/PrimaryButton";
 import { colors, radii, shadow, glowShadow } from "../theme";
+import { useT } from "../i18n/useT";
 
 const { width } = Dimensions.get("window");
 const BG_IMAGE = require("../../assets/images/scenic_window_bg.jpg");
 
-const SLIDES = [
-  {
-    key: "discover",
-    title: "Discover New Words",
-    subtitle: "Expand your vocabulary in multiple languages while having fun.",
-    badge: "GLOBAL VOCABULARY",
-    highlights: [
-      { flag: "🇬🇧", word: "Hello", lang: "English" },
-      { flag: "🇪🇸", word: "Hola", lang: "Español" },
-      { flag: "🇫🇷", word: "Bonjour", lang: "Français" },
-      { flag: "🇩🇪", word: "Hallo", lang: "Deutsch" },
-      { flag: "🇸🇦", word: "مرحبا", lang: "Arabic" },
-      { flag: "🇵🇰", word: "اردو", lang: "Urdu" },
-    ],
-  },
-  {
-    key: "train",
-    title: "Train Your Mind",
-    subtitle: "Sharpen memory, improve focus, and enjoy calm daily word challenges.",
-    badge: "BRAIN TRAINING",
-    features: [
-      { icon: "bulb-outline", label: "Sharper Focus" },
-      { icon: "flash-outline", label: "Fast Recall" },
-      { icon: "leaf-outline", label: "Calm Mind" },
-      { icon: "trending-up-outline", label: "Daily Growth" },
-    ],
-    pills: ["FOCUS", "LEARN", "GROW", "CONNECT"],
-  },
-  {
-    key: "grow",
-    title: "Play, Learn & Grow",
-    subtitle: "Explore languages, unlock levels, and build a brighter word journey every day.",
-    badge: "ENDLESS ADVENTURE",
-    steps: [
-      { icon: "game-controller-outline", title: "Fun Word Puzzles", desc: "Hundreds of handcrafted levels" },
-      { icon: "trophy-outline", title: "Daily Rewards", desc: "Coins, hints and streak bonuses" },
-      { icon: "globe-outline", title: "6 Rich Languages", desc: "English, Spanish, French, German, Arabic, Urdu" },
-    ],
-  },
+const LANG_HIGHLIGHTS = [
+  { flag: "🇬🇧", word: "Hello", lang: "English" },
+  { flag: "🇪🇸", word: "Hola", lang: "Español" },
+  { flag: "🇫🇷", word: "Bonjour", lang: "Français" },
+  { flag: "🇩🇪", word: "Hallo", lang: "Deutsch" },
+  { flag: "🇸🇦", word: "مرحبا", lang: "Arabic" },
+  { flag: "🇵🇰", word: "اردو", lang: "Urdu" },
 ];
 
 export default function OnboardingScreen({ navigation }) {
+  const { t } = useT();
   const scrollRef = useRef(null);
   const [index, setIndex] = useState(0);
+
+  const SLIDES = [
+    {
+      key: "discover",
+      title: t("onboarding.slide1.title"),
+      subtitle: t("onboarding.slide1.subtitle"),
+      badge: t("onboarding.slide1.badge"),
+    },
+    {
+      key: "train",
+      title: t("onboarding.slide2.title"),
+      subtitle: t("onboarding.slide2.subtitle"),
+      badge: t("onboarding.slide2.badge"),
+      features: [
+        { icon: "bulb-outline", label: t("onboarding.slide2.feature1") },
+        { icon: "flash-outline", label: t("onboarding.slide2.feature2") },
+        { icon: "leaf-outline", label: t("onboarding.slide2.feature3") },
+        { icon: "trending-up-outline", label: t("onboarding.slide2.feature4") },
+      ],
+      pills: [
+        t("onboarding.slide2.pill1"),
+        t("onboarding.slide2.pill2"),
+        t("onboarding.slide2.pill3"),
+        t("onboarding.slide2.pill4"),
+      ],
+    },
+    {
+      key: "grow",
+      title: t("onboarding.slide3.title"),
+      subtitle: t("onboarding.slide3.subtitle"),
+      badge: t("onboarding.slide3.badge"),
+      steps: [
+        { icon: "game-controller-outline", title: t("onboarding.slide3.step1Title"), desc: t("onboarding.slide3.step1Desc") },
+        { icon: "trophy-outline", title: t("onboarding.slide3.step2Title"), desc: t("onboarding.slide3.step2Desc") },
+        { icon: "globe-outline", title: t("onboarding.slide3.step3Title"), desc: t("onboarding.slide3.step3Desc") },
+      ],
+    },
+  ];
 
   const goNext = () => {
     if (index < SLIDES.length - 1) {
@@ -96,7 +104,7 @@ export default function OnboardingScreen({ navigation }) {
             </View>
           </View>
           <Pressable onPress={skip} style={styles.skipBtn} hitSlop={10}>
-            <Text style={styles.skipText}>Skip</Text>
+            <Text style={styles.skipText}>{t("onboarding.skip")}</Text>
           </Pressable>
         </View>
 
@@ -123,7 +131,7 @@ export default function OnboardingScreen({ navigation }) {
               {/* Slide 0: Languages Grid Showcase */}
               {i === 0 && (
                 <View style={styles.cardGrid}>
-                  {slide.highlights.map((item) => (
+                  {LANG_HIGHLIGHTS.map((item) => (
                     <View key={item.lang} style={styles.langMiniCard}>
                       <Text style={styles.langFlag}>{item.flag}</Text>
                       <Text style={styles.langWord}>{item.word}</Text>
@@ -138,7 +146,6 @@ export default function OnboardingScreen({ navigation }) {
                 <View style={styles.brainCard}>
                   <View style={styles.brainCenterGlow}>
                     <Ionicons name="sparkles" size={32} color={colors.gold} />
-                    <Text style={styles.brainCenterText}>TRAIN DAILY</Text>
                   </View>
                   <View style={styles.featurePillsRow}>
                     {slide.features.map((feat) => (
@@ -195,14 +202,14 @@ export default function OnboardingScreen({ navigation }) {
 
           {/* Action Button */}
           <PrimaryButton
-            title={index === SLIDES.length - 1 ? "Get Started" : "Next"}
+            title={index === SLIDES.length - 1 ? t("onboarding.getStarted") : t("onboarding.next")}
             iconRight="arrow-forward"
             onPress={goNext}
             variant="gold"
             style={styles.actionBtn}
           />
 
-          <Text style={styles.mottoText}>PLAY • LEARN • CONNECT</Text>
+          <Text style={styles.mottoText}>{t("onboarding.motto")}</Text>
         </View>
       </SafeAreaView>
     </ImageBackground>
@@ -257,16 +264,17 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   skipBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 16,
     borderRadius: radii.pill,
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.35)",
+    backgroundColor: "rgba(10, 38, 24, 0.88)",
+    borderWidth: 1.5,
+    borderColor: "rgba(246, 211, 101, 0.65)",
+    ...glowShadow,
   },
   skipText: {
-    color: colors.white,
-    fontWeight: "700",
+    color: colors.goldLight,
+    fontWeight: "800",
     fontSize: 13,
   },
   carousel: {
@@ -348,13 +356,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
   },
-  brainCenterText: {
-    color: colors.gold,
-    fontWeight: "900",
-    fontSize: 13,
-    letterSpacing: 2,
-    marginTop: 4,
-  },
   featurePillsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -385,6 +386,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 10,
     gap: 6,
+    flexWrap: "wrap",
   },
   wordTileMini: {
     backgroundColor: colors.cream,
@@ -478,4 +480,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-

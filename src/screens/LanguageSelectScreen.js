@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   Pressable,
   ImageBackground,
@@ -14,6 +15,7 @@ import PrimaryButton from "../components/PrimaryButton";
 import { colors, radii, shadow, glowShadow } from "../theme";
 import { LANGUAGES } from "../data/puzzles";
 import { useGame } from "../context/GameContext";
+import { useT } from "../i18n/useT";
 
 const BG_IMAGE = require("../../assets/images/clean_nature_bg.jpg");
 
@@ -24,16 +26,98 @@ const LANG_DETAILS = {
   de: { flag: "🇩🇪", native: "Deutsch", sub: "German" },
   ar: { flag: "🇸🇦", native: "العربية", sub: "Arabic" },
   ur: { flag: "🇵🇰", native: "اردو", sub: "Urdu" },
+  pt: { flag: "🇧🇷", native: "Português", sub: "Portuguese" },
+  it: { flag: "🇮🇹", native: "Italiano", sub: "Italian" },
+  nl: { flag: "🇳🇱", native: "Nederlands", sub: "Dutch" },
+  pl: { flag: "🇵🇱", native: "Polski", sub: "Polish" },
+  ro: { flag: "🇷🇴", native: "Română", sub: "Romanian" },
+  cs: { flag: "🇨🇿", native: "Čeština", sub: "Czech" },
+  sv: { flag: "🇸🇪", native: "Svenska", sub: "Swedish" },
+  no: { flag: "🇳🇴", native: "Norsk", sub: "Norwegian" },
+  da: { flag: "🇩🇰", native: "Dansk", sub: "Danish" },
+  fi: { flag: "🇫🇮", native: "Suomi", sub: "Finnish" },
+  el: { flag: "🇬🇷", native: "Ελληνικά", sub: "Greek" },
+  hu: { flag: "🇭🇺", native: "Magyar", sub: "Hungarian" },
+  tr: { flag: "🇹🇷", native: "Türkçe", sub: "Turkish" },
+  uk: { flag: "🇺🇦", native: "Українська", sub: "Ukrainian" },
+  ru: { flag: "🇷🇺", native: "Русский", sub: "Russian" },
+  bg: { flag: "🇧🇬", native: "Български", sub: "Bulgarian" },
+  hr: { flag: "🇭🇷", native: "Hrvatski", sub: "Croatian" },
+  sr: { flag: "🇷🇸", native: "Српски", sub: "Serbian" },
+  sk: { flag: "🇸🇰", native: "Slovenčina", sub: "Slovak" },
+  ca: { flag: "🏴", native: "Català", sub: "Catalan" },
+  zh: { flag: "🇨🇳", native: "简体中文", sub: "Chinese (Simplified)" },
+  "zh-TW": { flag: "🇹🇼", native: "繁體中文", sub: "Chinese (Traditional)" },
+  ja: { flag: "🇯🇵", native: "日本語", sub: "Japanese" },
+  ko: { flag: "🇰🇷", native: "한국어", sub: "Korean" },
+  hi: { flag: "🇮🇳", native: "हिन्दी", sub: "Hindi" },
+  bn: { flag: "🇧🇩", native: "বাংলা", sub: "Bengali" },
+  ta: { flag: "🇮🇳", native: "தமிழ்", sub: "Tamil" },
+  te: { flag: "🇮🇳", native: "తెలుగు", sub: "Telugu" },
+  th: { flag: "🇹🇭", native: "ไทย", sub: "Thai" },
+  vi: { flag: "🇻🇳", native: "Tiếng Việt", sub: "Vietnamese" },
+  id: { flag: "🇮🇩", native: "Bahasa Indonesia", sub: "Indonesian" },
+  ms: { flag: "🇲🇾", native: "Bahasa Melayu", sub: "Malay" },
+  tl: { flag: "🇵🇭", native: "Filipino", sub: "Filipino" },
+  my: { flag: "🇲🇲", native: "မြန်မာ", sub: "Burmese" },
+  km: { flag: "🇰🇭", native: "ខ្មែរ", sub: "Khmer" },
+  si: { flag: "🇱🇰", native: "සිංහල", sub: "Sinhala" },
+  ne: { flag: "🇳🇵", native: "नेपाली", sub: "Nepali" },
+  mr: { flag: "🇮🇳", native: "मराठी", sub: "Marathi" },
+  gu: { flag: "🇮🇳", native: "ગુજરાતી", sub: "Gujarati" },
+  pa: { flag: "🇮🇳", native: "ਪੰਜਾਬੀ", sub: "Punjabi" },
+  kn: { flag: "🇮🇳", native: "ಕನ್ನಡ", sub: "Kannada" },
+  ml: { flag: "🇮🇳", native: "മലയാളം", sub: "Malayalam" },
+  sw: { flag: "🇰🇪", native: "Kiswahili", sub: "Swahili" },
+  he: { flag: "🇮🇱", native: "עברית", sub: "Hebrew" },
+  fa: { flag: "🇮🇷", native: "فارسی", sub: "Persian" },
+  am: { flag: "🇪🇹", native: "አማርኛ", sub: "Amharic" },
+  ha: { flag: "🇳🇬", native: "Hausa", sub: "Hausa" },
+  yo: { flag: "🇳🇬", native: "Yorùbá", sub: "Yoruba" },
+  zu: { flag: "🇿🇦", native: "isiZulu", sub: "Zulu" },
+  af: { flag: "🇿🇦", native: "Afrikaans", sub: "Afrikaans" },
 };
 
 export default function LanguageSelectScreen({ navigation, route }) {
   const { setLanguage, state } = useGame();
+  const { t } = useT();
   const fromHome = route?.params?.fromHome;
   const [choice, setChoice] = useState(state.language || "en");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredLanguages = useMemo(() => {
+    if (!searchQuery.trim()) return LANGUAGES;
+    const q = searchQuery.toLowerCase().trim();
+    return LANGUAGES.filter((lang) => {
+      const meta = LANG_DETAILS[lang.code] || {};
+      return (
+        lang.name.toLowerCase().includes(q) ||
+        lang.code.toLowerCase().includes(q) ||
+        (meta.native && meta.native.toLowerCase().includes(q)) ||
+        (meta.sub && meta.sub.toLowerCase().includes(q))
+      );
+    });
+  }, [searchQuery]);
+
+  const handleBack = () => {
+    if (fromHome) {
+      if (navigation.canGoBack && navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate("MainTabs", { screen: "Home" });
+      }
+    } else {
+      if (navigation.canGoBack && navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.replace("Onboarding");
+      }
+    }
+  };
 
   const confirm = () => {
     setLanguage(choice);
-    if (fromHome) navigation.goBack();
+    if (fromHome) handleBack();
     else navigation.replace("Login");
   };
 
@@ -43,10 +127,10 @@ export default function LanguageSelectScreen({ navigation, route }) {
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <BackButton onPress={() => navigation.goBack()} />
+          <BackButton onPress={handleBack} />
           <View style={styles.headerBrand}>
             <Ionicons name="leaf" size={14} color={colors.gold} style={{ marginRight: 6 }} />
-            <Text style={styles.headerBrandText}>WORD CONNECT</Text>
+            <Text style={styles.headerBrandText}>{t("languageSelect.brand")}</Text>
           </View>
           <View style={{ width: 44 }} />
         </View>
@@ -54,56 +138,81 @@ export default function LanguageSelectScreen({ navigation, route }) {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Headline */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Choose{"\n"}Your Language</Text>
-            <Text style={styles.subtitle}>
-              Select your preferred language to continue.
-            </Text>
+            <Text style={styles.title}>{t("languageSelect.title")}</Text>
+            <Text style={styles.subtitle}>{t("languageSelect.subtitle")}</Text>
+          </View>
+
+          {/* Search Input Filter */}
+          <View style={styles.searchBarWrap}>
+            <Ionicons name="search" size={18} color={colors.forest} style={{ marginRight: 8 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search from 56 languages..."
+              placeholderTextColor="#8A9D93"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              clearButtonMode="while-editing"
+            />
+            {!!searchQuery && (
+              <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color="#8A9D93" />
+              </Pressable>
+            )}
           </View>
 
           {/* Language Cards */}
           <View style={styles.cardsContainer}>
-            {LANGUAGES.map((lang) => {
-              const meta = LANG_DETAILS[lang.code] || { flag: "🌐", native: lang.name, sub: lang.name };
-              const isSelected = choice === lang.code;
+            {filteredLanguages.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <Ionicons name="search-outline" size={36} color={colors.cream} />
+                <Text style={styles.emptyText}>No languages found matching "{searchQuery}"</Text>
+              </View>
+            ) : (
+              filteredLanguages.map((lang) => {
+                const meta = LANG_DETAILS[lang.code] || { flag: "🌐", native: lang.name, sub: lang.name };
+                const isSelected = choice === lang.code;
 
-              return (
-                <Pressable
-                  key={lang.code}
-                  onPress={() => setChoice(lang.code)}
-                  style={({ pressed }) => [
-                    styles.langCard,
-                    isSelected && styles.langCardSelected,
-                    pressed && { opacity: 0.9, transform: [{ scale: 0.985 }] },
-                  ]}
-                >
-                  <View style={styles.flagWrap}>
-                    <Text style={styles.flagText}>{meta.flag}</Text>
-                  </View>
-                  <View style={styles.langNameWrap}>
-                    <Text style={[styles.langNativeName, isSelected && styles.langNativeNameSelected]}>
-                      {meta.native}
-                    </Text>
-                    <Text style={styles.langSubName}>{meta.sub}</Text>
-                  </View>
+                return (
+                  <Pressable
+                    key={lang.code}
+                    onPress={() => setChoice(lang.code)}
+                    style={({ pressed }) => [
+                      styles.langCard,
+                      isSelected && styles.langCardSelected,
+                      pressed && { opacity: 0.9, transform: [{ scale: 0.985 }] },
+                    ]}
+                  >
+                    <View style={styles.flagWrap}>
+                      <Text style={styles.flagText}>{meta.flag}</Text>
+                    </View>
+                    <View style={styles.langNameWrap}>
+                      <Text style={[styles.langNativeName, isSelected && styles.langNativeNameSelected]}>
+                        {meta.native}
+                      </Text>
+                      <Text style={styles.langSubName}>{meta.sub}</Text>
+                    </View>
 
-                  <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
-                    {isSelected ? (
-                      <Ionicons name="checkmark" size={14} color={colors.white} />
-                    ) : null}
-                  </View>
-                </Pressable>
-              );
-            })}
+                    <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
+                      {isSelected ? (
+                        <Ionicons name="checkmark" size={14} color={colors.white} />
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
           </View>
         </ScrollView>
 
         {/* Bottom CTA */}
         <View style={styles.bottomArea}>
           <PrimaryButton
-            title="Continue"
+            title={t("languageSelect.continue")}
             iconRight="arrow-forward"
             variant="green"
             onPress={confirm}
@@ -163,7 +272,7 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   title: {
     fontSize: 34,
@@ -184,16 +293,46 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
+  searchBarWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(251, 247, 236, 0.95)",
+    borderRadius: radii.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 16,
+    borderWidth: 1.2,
+    borderColor: "rgba(255, 255, 255, 0.6)",
+    ...shadow,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.forestDark,
+  },
   cardsContainer: {
-    gap: 12,
+    gap: 10,
+  },
+  emptyWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 36,
+  },
+  emptyText: {
+    color: colors.cream,
+    fontSize: 14,
+    fontWeight: "700",
+    marginTop: 10,
+    textAlign: "center",
   },
   langCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(251, 247, 236, 0.94)",
     borderRadius: radii.lg,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderWidth: 1.5,
     borderColor: "rgba(255, 255, 255, 0.6)",
     ...shadow,
@@ -205,22 +344,22 @@ const styles = StyleSheet.create({
     ...glowShadow,
   },
   flagWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(15, 58, 38, 0.08)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 16,
+    marginRight: 14,
   },
   flagText: {
-    fontSize: 24,
+    fontSize: 22,
   },
   langNameWrap: {
     flex: 1,
   },
   langNativeName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
     color: colors.forestDark,
   },
@@ -234,9 +373,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   radioCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: "#C5D4CB",
     backgroundColor: "transparent",
@@ -276,4 +415,3 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
 });
-

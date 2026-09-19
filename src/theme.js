@@ -58,4 +58,3 @@ export const fonts = {
   heading: undefined, // uses system bold
   body: undefined,
 };
-
