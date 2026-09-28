@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { CoinBadge } from "../components/Bits";
+import { CoinBadge, DiamondBadge } from "../components/Bits";
 import { colors, radii, shadow, glowShadow } from "../theme";
 import { useGame } from "../context/GameContext";
 import { useT } from "../i18n/useT";
@@ -29,6 +29,12 @@ const WORLD_ACCENTS = {
   4: { bg: "rgba(173, 216, 230, 0.18)", border: "#ADD8E6" },
   5: { bg: "rgba(0, 105, 148, 0.18)", border: "#006994" },
   6: { bg: "rgba(255, 140, 66, 0.18)", border: "#FF8C42" },
+  7: { bg: "rgba(34, 139, 34, 0.18)", border: "#2E8B57" },
+  8: { bg: "rgba(147, 112, 219, 0.18)", border: "#9370DB" },
+  9: { bg: "rgba(220, 20, 60, 0.18)", border: "#E63946" },
+  10: { bg: "rgba(75, 0, 130, 0.18)", border: "#7B68EE" },
+  11: { bg: "rgba(218, 165, 32, 0.18)", border: "#DAA520" },
+  12: { bg: "rgba(255, 215, 0, 0.22)", border: "#FFD700" },
 };
 
 // Icons per world
@@ -39,6 +45,12 @@ const WORLD_ICONS = {
   4: "diamond",
   5: "globe",
   6: "moon",
+  7: "rainy",
+  8: "sparkles",
+  9: "flame",
+  10: "planet",
+  11: "trail-sign",
+  12: "trophy",
 };
 
 export default function WorldsScreen({ navigation }) {
@@ -101,10 +113,17 @@ export default function WorldsScreen({ navigation }) {
             />
             <Text style={styles.headerBrandText}>{t("worlds.title")}</Text>
           </View>
-          <CoinBadge
-            coins={state.coins}
-            onAdd={() => navigation.navigate("Shop")}
-          />
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <CoinBadge
+              coins={state.coins}
+              onAdd={() => navigation.navigate("Shop")}
+              style={{ marginRight: 6 }}
+            />
+            <DiamondBadge
+              diamonds={state.diamonds || 0}
+              onAdd={() => navigation.navigate("Shop")}
+            />
+          </View>
         </View>
 
         {/* Title Section */}

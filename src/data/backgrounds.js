@@ -9,16 +9,28 @@ export const LOCAL_MOUNTAIN_ASSETS = {
   scenic: require("../../assets/images/scenic_game_bg.jpg"),
   nature: require("../../assets/images/clean_nature_bg.jpg"),
   window: require("../../assets/images/scenic_window_bg.jpg"),
+  rainforest: require("../../assets/images/world_rainforest.jpg"),
+  aurora: require("../../assets/images/world_aurora.jpg"),
+  volcano: require("../../assets/images/world_volcano.jpg"),
+  celestial: require("../../assets/images/world_celestial.jpg"),
+  woods: require("../../assets/images/world_woods.jpg"),
+  olympus: require("../../assets/images/world_olympus.jpg"),
 };
 
-// 6 World primary backgrounds
+// 12 World primary backgrounds
 export const WORLD_BACKGROUNDS = {
   1: LOCAL_MOUNTAIN_ASSETS.alps,
   2: LOCAL_MOUNTAIN_ASSETS.misty,
   3: LOCAL_MOUNTAIN_ASSETS.sunset,
   4: LOCAL_MOUNTAIN_ASSETS.scenic,
   5: LOCAL_MOUNTAIN_ASSETS.nature,
-  6: LOCAL_MOUNTAIN_ASSETS.alps,
+  6: LOCAL_MOUNTAIN_ASSETS.window,
+  7: LOCAL_MOUNTAIN_ASSETS.rainforest,
+  8: LOCAL_MOUNTAIN_ASSETS.aurora,
+  9: LOCAL_MOUNTAIN_ASSETS.volcano,
+  10: LOCAL_MOUNTAIN_ASSETS.celestial,
+  11: LOCAL_MOUNTAIN_ASSETS.woods,
+  12: LOCAL_MOUNTAIN_ASSETS.olympus,
 };
 
 // 50 Curated Mountain Landscapes (8-9 per world biome)
@@ -384,18 +396,114 @@ export const MOUNTAIN_BACKGROUNDS = [
     local: LOCAL_MOUNTAIN_ASSETS.alps,
     uri: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1080&q=80",
   },
+
+  // World 7: Mystic Rainforest (Levels 301-350, BGs 51-58)
+  {
+    id: 51,
+    worldId: 7,
+    name: "Emerald Canopy Waterfall",
+    local: LOCAL_MOUNTAIN_ASSETS.rainforest,
+    uri: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1080&q=80",
+  },
+  {
+    id: 52,
+    worldId: 7,
+    name: "Turquoise River Gorge",
+    local: LOCAL_MOUNTAIN_ASSETS.rainforest,
+    uri: "https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=1080&q=80",
+  },
+
+  // World 8: Aurora Borealis (Levels 351-400, BGs 53-60)
+  {
+    id: 53,
+    worldId: 8,
+    name: "Northern Lights Over Moraine",
+    local: LOCAL_MOUNTAIN_ASSETS.aurora,
+    uri: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&w=1080&q=80",
+  },
+  {
+    id: 54,
+    worldId: 8,
+    name: "Violet Aurora Mirror Lake",
+    local: LOCAL_MOUNTAIN_ASSETS.aurora,
+    uri: "https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=1080&q=80",
+  },
+
+  // World 9: Volcanic Highlands (Levels 401-450, BGs 61-68)
+  {
+    id: 55,
+    worldId: 9,
+    name: "Obsidian Crags at Twilight",
+    local: LOCAL_MOUNTAIN_ASSETS.volcano,
+    uri: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1080&q=80",
+  },
+  {
+    id: 56,
+    worldId: 9,
+    name: "Glowing Ridge Mist",
+    local: LOCAL_MOUNTAIN_ASSETS.volcano,
+    uri: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1080&q=80",
+  },
+
+  // World 10: Celestial Sanctuary (Levels 451-500, BGs 69-76)
+  {
+    id: 57,
+    worldId: 10,
+    name: "Starlight Temple Vista",
+    local: LOCAL_MOUNTAIN_ASSETS.celestial,
+    uri: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1080&q=80",
+  },
+  {
+    id: 58,
+    worldId: 10,
+    name: "Sea of Clouds Horizon",
+    local: LOCAL_MOUNTAIN_ASSETS.celestial,
+    uri: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1080&q=80",
+  },
+
+  // World 11: Whispering Woods (Levels 501-550, BGs 77-84)
+  {
+    id: 59,
+    worldId: 11,
+    name: "Golden Birch Cobblestone Way",
+    local: LOCAL_MOUNTAIN_ASSETS.woods,
+    uri: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&q=80",
+  },
+  {
+    id: 60,
+    worldId: 11,
+    name: "Warm Lantern Path",
+    local: LOCAL_MOUNTAIN_ASSETS.woods,
+    uri: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1080&q=80",
+  },
+
+  // World 12: Mount Olympus (Levels 551-600, BGs 85-92)
+  {
+    id: 61,
+    worldId: 12,
+    name: "Citadel of the Gods",
+    local: LOCAL_MOUNTAIN_ASSETS.olympus,
+    uri: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1080&q=80",
+  },
+  {
+    id: 62,
+    worldId: 12,
+    name: "Soaring Mountain Parthenon",
+    local: LOCAL_MOUNTAIN_ASSETS.olympus,
+    uri: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?auto=format&fit=crop&w=1080&q=80",
+  },
 ];
 
 /**
- * Returns the mountain background for a given level (1..300).
- * Maps 300 levels smoothly across the 50 mountain backgrounds.
+ * Returns the mountain background for a given level (1..600).
+ * Maps 600 levels smoothly across the 12 world biomes and landscapes.
  */
 export function getBackgroundForLevel(levelId = 1) {
   const num = Number(levelId) || 1;
   const index = Math.max(0, num - 1) % MOUNTAIN_BACKGROUNDS.length;
   const bg = MOUNTAIN_BACKGROUNDS[index] || MOUNTAIN_BACKGROUNDS[0];
 
-  // Rotate between all 6 bundled high-res mountain wallpapers so offline play also changes every level!
+  // Rotate between all 12 bundled high-res mountain and world wallpapers so offline play changes dynamically!
   const localList = [
     LOCAL_MOUNTAIN_ASSETS.alps,
     LOCAL_MOUNTAIN_ASSETS.misty,
@@ -403,6 +511,12 @@ export function getBackgroundForLevel(levelId = 1) {
     LOCAL_MOUNTAIN_ASSETS.scenic,
     LOCAL_MOUNTAIN_ASSETS.nature,
     LOCAL_MOUNTAIN_ASSETS.window,
+    LOCAL_MOUNTAIN_ASSETS.rainforest,
+    LOCAL_MOUNTAIN_ASSETS.aurora,
+    LOCAL_MOUNTAIN_ASSETS.volcano,
+    LOCAL_MOUNTAIN_ASSETS.celestial,
+    LOCAL_MOUNTAIN_ASSETS.woods,
+    LOCAL_MOUNTAIN_ASSETS.olympus,
   ];
   const localRotating = localList[(num - 1) % localList.length];
 

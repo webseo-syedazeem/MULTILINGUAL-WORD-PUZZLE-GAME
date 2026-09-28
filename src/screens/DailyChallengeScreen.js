@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BackButton, CoinBadge, IconCircleButton } from "../components/Bits";
+import { BackButton, CoinBadge, DiamondBadge, IconCircleButton } from "../components/Bits";
 import PrimaryButton from "../components/PrimaryButton";
 import WordCircle from "../components/WordCircle";
 import LuxuryModal from "../components/LuxuryModal";
@@ -25,7 +25,16 @@ const DAILY_HINT_COST = 25;
 
 export default function DailyChallengeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { state, completeDailyChallenge, spendCoins } = useGame();
+  const {
+    state,
+    completeDailyChallenge,
+    spendCoins,
+    playWinSound,
+    playLoseSound,
+    playWordFoundSound,
+    playTapSound,
+    playCoinSound,
+  } = useGame();
   const { t } = useT();
   const challenge = useMemo(() => getDailyChallenge(state.language), [state.language]);
   const isRTL = useMemo(() => !!LANGUAGES.find((l) => l.code === state.language)?.isRTL, [state.language]);
@@ -75,6 +84,7 @@ export default function DailyChallengeScreen({ navigation }) {
       timerRef.current = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
     } else if (started && timeLeft === 0 && !resultModalVisible) {
       // Time is up!
+      playLoseSound();
       setResultType("timeout");
       setResultModalVisible(true);
     }
@@ -86,6 +96,7 @@ export default function DailyChallengeScreen({ navigation }) {
     if (found.length === challenge.words.length && started && !rewardedRef.current) {
       rewardedRef.current = true;
       completeDailyChallenge(challenge.rewardCoins);
+      playWinSound();
       setResultType("won");
       setResultModalVisible(true);
     }
@@ -95,13 +106,16 @@ export default function DailyChallengeScreen({ navigation }) {
     const upper = word.toUpperCase();
     if (challenge.words.includes(upper) && !found.includes(upper)) {
       setFound((prev) => [...prev, upper]);
+      playWordFoundSound();
       setMessage(t("daily.foundWord", { word: upper }));
     } else if (upper.length > 1) {
+      playLoseSound();
       setMessage(t("game.notInList"));
     }
   };
 
   const shuffle = () => {
+    playTapSound();
     const arr = [...letters];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -117,8 +131,10 @@ export default function DailyChallengeScreen({ navigation }) {
     if (spendCoins(DAILY_HINT_COST)) {
       const hintedWord = remaining[0];
       setFound((prev) => [...prev, hintedWord]);
+      playWordFoundSound();
       setMessage(t("game.hintRevealed", { word: hintedWord }));
     } else {
+      playLoseSound();
       setCoinAlertVisible(true);
     }
   };
@@ -155,7 +171,10 @@ export default function DailyChallengeScreen({ navigation }) {
             <View style={styles.headerTitleWrap}>
               <Text style={styles.headerTitle}>{t("daily.title")}</Text>
             </View>
-            <CoinBadge coins={state.coins} onAdd={() => navigation.navigate("Shop")} />
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <CoinBadge coins={state.coins} onAdd={() => navigation.navigate("Shop")} style={{ marginRight: 6 }} />
+              <DiamondBadge diamonds={state.diamonds || 0} onAdd={() => navigation.navigate("Shop")} />
+            </View>
           </View>
 
           {/* Scrollable Information Hub */}
@@ -304,7 +323,10 @@ export default function DailyChallengeScreen({ navigation }) {
           <View style={styles.headerTitleWrap}>
             <Text style={styles.headerTitle}>{t("daily.title")}</Text>
           </View>
-          <CoinBadge coins={state.coins} onAdd={() => navigation.navigate("Shop")} />
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <CoinBadge coins={state.coins} onAdd={() => navigation.navigate("Shop")} style={{ marginRight: 6 }} />
+            <DiamondBadge diamonds={state.diamonds || 0} onAdd={() => navigation.navigate("Shop")} />
+          </View>
         </View>
 
         {/* Live Status Bar */}
@@ -782,8 +804,8 @@ const styles = StyleSheet.create({
   },
   wordChip: {
     backgroundColor: "rgba(10, 41, 26, 0.7)",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
@@ -795,9 +817,10 @@ const styles = StyleSheet.create({
   },
   wordChipText: {
     color: colors.cream,
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "800",
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    includeFontPadding: false,
   },
   wordChipTextDone: {
     color: colors.white,

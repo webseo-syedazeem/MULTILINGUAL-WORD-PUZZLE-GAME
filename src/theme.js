@@ -25,6 +25,10 @@ export const colors = {
   cardBorderGold: "rgba(245, 196, 81, 0.75)",
   danger: "#D2555A",
   locked: "#5A5A5A",
+  diamond: "#00E5FF",
+  diamondDark: "#0097A7",
+  diamondLight: "#E0F7FA",
+  diamondGlow: "rgba(0, 229, 255, 0.45)",
 };
 
 export const radii = {
@@ -46,13 +50,22 @@ export const shadow = {
   elevation: 4,
 };
 
-export const glowShadow = {
-  shadowColor: "#F5C451",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.45,
-  shadowRadius: 10,
-  elevation: 6,
-};
+export const glowShadow = Object.assign(
+  (customColor) => ({
+    shadowColor: customColor || "#F5C451",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 6,
+  }),
+  {
+    shadowColor: "#F5C451",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 6,
+  }
+);
 
 export const fonts = {
   heading: undefined, // uses system bold

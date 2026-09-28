@@ -12,9 +12,9 @@ const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Onboarding">
-      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="LanguageSelect">
       <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen
         name="LanguageSelectFromHome"
         component={LanguageSelectScreen}

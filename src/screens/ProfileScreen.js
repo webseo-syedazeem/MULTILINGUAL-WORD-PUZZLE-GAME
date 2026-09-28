@@ -70,6 +70,7 @@ export default function ProfileScreen({ navigation }) {
     logout,
     backendConfigured,
     isCloudConnected,
+    playTapSound,
   } = useGame();
   const { t } = useT();
 
@@ -407,10 +408,10 @@ export default function ProfileScreen({ navigation }) {
 
               <View style={styles.statsDivider} />
 
-              {/* Comprehensive 4-Metric Player Stats Bar */}
+              {/* Comprehensive 5-Metric Player Stats Bar */}
               <View style={styles.statsRow}>
                 <View style={styles.statCol}>
-                  <Ionicons name="star" size={18} color={colors.gold} />
+                  <Ionicons name="star" size={17} color={colors.gold} />
                   <Text style={styles.statNumber}>{levelsCompleted}</Text>
                   <Text style={styles.statLabel}>{t("profile.levels")}</Text>
                 </View>
@@ -418,15 +419,7 @@ export default function ProfileScreen({ navigation }) {
                 <View style={styles.statSep} />
 
                 <View style={styles.statCol}>
-                  <Ionicons name="book" size={18} color={colors.gold} />
-                  <Text style={styles.statNumber}>{wordsFound}</Text>
-                  <Text style={styles.statLabel}>{t("profile.words")}</Text>
-                </View>
-
-                <View style={styles.statSep} />
-
-                <View style={styles.statCol}>
-                  <Ionicons name="disc" size={18} color={colors.gold} />
+                  <Ionicons name="disc" size={17} color={colors.gold} />
                   <Text style={styles.statNumber}>{state.coins}</Text>
                   <Text style={styles.statLabel}>Coins</Text>
                 </View>
@@ -434,7 +427,23 @@ export default function ProfileScreen({ navigation }) {
                 <View style={styles.statSep} />
 
                 <View style={styles.statCol}>
-                  <Ionicons name="flame" size={18} color="#FF7A45" />
+                  <Ionicons name="diamond" size={16} color={colors.diamond} />
+                  <Text style={[styles.statNumber, { color: colors.diamond }]}>{state.diamonds || 0}</Text>
+                  <Text style={styles.statLabel}>Diamonds</Text>
+                </View>
+
+                <View style={styles.statSep} />
+
+                <View style={styles.statCol}>
+                  <Ionicons name="bulb" size={17} color={colors.goldLight} />
+                  <Text style={styles.statNumber}>{state.hints || 0}</Text>
+                  <Text style={styles.statLabel}>Hints</Text>
+                </View>
+
+                <View style={styles.statSep} />
+
+                <View style={styles.statCol}>
+                  <Ionicons name="flame" size={17} color="#FF7A45" />
                   <Text style={styles.statNumber}>{state.streakDays}d</Text>
                   <Text style={styles.statLabel}>Streak</Text>
                 </View>
@@ -454,20 +463,29 @@ export default function ProfileScreen({ navigation }) {
                 icon="volume-high"
                 label={t("profile.soundEffects")}
                 value={state.settings.soundEffects}
-                onValueChange={(val) => updateSetting("soundEffects", val)}
+                onValueChange={(val) => {
+                  playTapSound();
+                  updateSetting("soundEffects", val);
+                }}
               />
               <SettingsRow
                 icon="musical-notes"
                 label={t("profile.music")}
                 value={state.settings.music}
-                onValueChange={(val) => updateSetting("music", val)}
+                onValueChange={(val) => {
+                  playTapSound();
+                  updateSetting("music", val);
+                }}
               />
               <SettingsRow
                 icon="phone-portrait"
                 label={t("profile.vibration")}
                 value={state.settings.vibration}
                 isLast
-                onValueChange={(val) => updateSetting("vibration", val)}
+                onValueChange={(val) => {
+                  playTapSound();
+                  updateSetting("vibration", val);
+                }}
               />
             </View>
 

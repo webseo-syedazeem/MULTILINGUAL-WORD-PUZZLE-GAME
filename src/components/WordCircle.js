@@ -2,9 +2,10 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { View, Text, StyleSheet, PanResponder, Dimensions, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, radii, shadow, glowShadow } from "../theme";
+import { useGame } from "../context/GameContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const DEFAULT_CIRCLE_SIZE = Math.min(236, Math.floor(SCREEN_WIDTH * 0.62));
+const DEFAULT_CIRCLE_SIZE = Math.min(248, Math.floor(SCREEN_WIDTH * 0.65));
 
 /**
  * Mathematically computes the optimal layout geometry for any number of letters.
@@ -19,35 +20,35 @@ export function getWheelGeometry(count, circleSize = DEFAULT_CIRCLE_SIZE) {
     // ----------------------------------------------------
     // Mode 1: Single Ring Layout (3 to 8 letters)
     // ----------------------------------------------------
-    let nodeSize = 56;
-    let radius = 72;
-    let fontSize = 24;
+    let nodeSize = 60;
+    let radius = 74;
+    let fontSize = 27;
 
     if (count <= 3) {
-      nodeSize = 58;
-      radius = half - nodeSize / 2 - 20;
-      fontSize = 25;
-    } else if (count === 4) {
-      nodeSize = 56;
-      radius = half - nodeSize / 2 - 18;
-      fontSize = 24;
-    } else if (count === 5) {
-      nodeSize = 52;
+      nodeSize = 62;
       radius = half - nodeSize / 2 - 16;
-      fontSize = 22;
-    } else if (count === 6) {
-      nodeSize = 48;
+      fontSize = 28;
+    } else if (count === 4) {
+      nodeSize = 60;
       radius = half - nodeSize / 2 - 14;
-      fontSize = 20;
-    } else if (count === 7) {
-      nodeSize = 44;
+      fontSize = 27;
+    } else if (count === 5) {
+      nodeSize = 56;
       radius = half - nodeSize / 2 - 12;
-      fontSize = 18;
+      fontSize = 25;
+    } else if (count === 6) {
+      nodeSize = 52;
+      radius = half - nodeSize / 2 - 10;
+      fontSize = 23;
+    } else if (count === 7) {
+      nodeSize = 48;
+      radius = half - nodeSize / 2 - 8;
+      fontSize = 21;
     } else {
       // 8 letters
-      nodeSize = 40;
-      radius = half - nodeSize / 2 - 10;
-      fontSize = 17;
+      nodeSize = 44;
+      radius = half - nodeSize / 2 - 6;
+      fontSize = 20;
     }
 
     const positions = [];
@@ -74,9 +75,9 @@ export function getWheelGeometry(count, circleSize = DEFAULT_CIRCLE_SIZE) {
     const innerRadius = Math.max(38, Math.round(outerRadius * 0.52));
 
     // Dynamic node diameter bounded to guarantee clear spacing on both rings
-    const outerMaxNode = Math.floor(2 * outerRadius * Math.sin(Math.PI / outerCount) - 6);
-    const innerMaxNode = Math.floor(2 * innerRadius * Math.sin(Math.PI / innerCount) - 6);
-    const nodeSize = Math.max(32, Math.min(38, Math.min(outerMaxNode, innerMaxNode)));
+    const outerMaxNode = Math.floor(2 * outerRadius * Math.sin(Math.PI / outerCount) - 4);
+    const innerMaxNode = Math.floor(2 * innerRadius * Math.sin(Math.PI / innerCount) - 4);
+    const nodeSize = Math.max(34, Math.min(42, Math.min(outerMaxNode, innerMaxNode)));
 
     const positions = [];
     // Outer ring: starts at -90 degrees
@@ -98,7 +99,7 @@ export function getWheelGeometry(count, circleSize = DEFAULT_CIRCLE_SIZE) {
       });
     }
 
-    const fontSize = Math.max(14, Math.round(nodeSize * 0.48));
+    const fontSize = Math.max(16, Math.round(nodeSize * 0.54));
     const hitRadius = nodeSize / 2 + 8;
     return { circleSize, nodeSize, radius: outerRadius, fontSize, hitRadius, positions, isDualRing: true };
   }
@@ -162,6 +163,12 @@ export default function WordCircle({ letters = [], onSubmitWord, onShuffle, isRT
   const containerRef = useRef(null);
   const previewAnim = useRef(new Animated.Value(0)).current;
 
+  let playTapSound = null;
+  try {
+    const game = useGame();
+    playTapSound = game?.playTapSound;
+  } catch (e) {}
+
   const hasSelected = selected.length > 0;
   useEffect(() => {
     Animated.spring(previewAnim, {
@@ -204,21 +211,29 @@ export default function WordCircle({ letters = [], onSubmitWord, onShuffle, isRT
       onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         const idx = hitTest(locationX, locationY);
-        if (idx >= 0) setSelected([idx]);
+        if (idx >= 0) {
+          setSelected([idx]);
+          if (playTapSound) playTapSound();
+        }
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         const idx = hitTest(locationX, locationY);
         if (idx < 0) return;
         setSelected((prev) => {
-          if (prev.length === 0) return [idx];
+          if (prev.length === 0) {
+            if (playTapSound) playTapSound();
+            return [idx];
+          }
           const last = prev[prev.length - 1];
           if (last === idx) return prev;
           // Backtracking undo: return to previous letter to unselect last
           if (prev.length > 1 && prev[prev.length - 2] === idx) {
+            if (playTapSound) playTapSound();
             return prev.slice(0, prev.length - 1);
           }
           if (prev.includes(idx)) return prev;
+          if (playTapSound) playTapSound();
           return [...prev, idx];
         });
       },
@@ -352,13 +367,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   previewContainer: {
-    height: 38,
+    height: 42,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
   },
   previewPlaceholder: {
-    height: 38,
+    height: 42,
   },
   previewBubble: {
     backgroundColor: "rgba(10, 41, 26, 0.95)",
@@ -372,8 +387,8 @@ const styles = StyleSheet.create({
   previewText: {
     color: colors.goldLight,
     fontWeight: "900",
-    fontSize: 20,
-    letterSpacing: 2.5,
+    fontSize: 22,
+    letterSpacing: 2.8,
     textAlign: "center",
   },
   circleOuter: {

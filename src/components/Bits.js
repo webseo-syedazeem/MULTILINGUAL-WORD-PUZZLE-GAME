@@ -4,19 +4,53 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors, radii, shadow } from "../theme";
 
 export function CoinBadge({ coins, onAdd, style }) {
-  return (
+  const content = (
     <View style={[styles.coinBadge, style]}>
       <View style={styles.coinIconCircle}>
         <Ionicons name="disc" size={16} color={colors.gold} />
       </View>
       <Text style={styles.coinText}>{coins}</Text>
       {onAdd ? (
-        <Pressable onPress={onAdd} style={styles.addBtn} hitSlop={8}>
+        <View style={styles.addBtn}>
           <Ionicons name="add" size={15} color={colors.white} />
-        </Pressable>
+        </View>
       ) : null}
     </View>
   );
+
+  if (onAdd) {
+    return (
+      <Pressable onPress={onAdd} hitSlop={6} style={({ pressed }) => pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }}>
+        {content}
+      </Pressable>
+    );
+  }
+  return content;
+}
+
+export function DiamondBadge({ diamonds, onAdd, style }) {
+  const content = (
+    <View style={[styles.diamondBadge, style]}>
+      <View style={styles.diamondIconCircle}>
+        <Ionicons name="diamond" size={15} color={colors.diamond} />
+      </View>
+      <Text style={styles.diamondText}>{diamonds}</Text>
+      {onAdd ? (
+        <View style={styles.addDiamondBtn}>
+          <Ionicons name="add" size={15} color={colors.white} />
+        </View>
+      ) : null}
+    </View>
+  );
+
+  if (onAdd) {
+    return (
+      <Pressable onPress={onAdd} hitSlop={6} style={({ pressed }) => pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] }}>
+        {content}
+      </Pressable>
+    );
+  }
+  return content;
 }
 
 export function BackButton({ onPress, navigation, style }) {
@@ -115,6 +149,39 @@ const styles = StyleSheet.create({
   coinText: { color: colors.white, fontWeight: "800", fontSize: 14, marginRight: 6 },
   addBtn: {
     backgroundColor: colors.forestLight,
+    borderRadius: radii.pill,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 2,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+  },
+  diamondBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(10, 41, 35, 0.76)",
+    borderRadius: radii.pill,
+    paddingVertical: 5,
+    paddingLeft: 6,
+    paddingRight: 10,
+    borderWidth: 1.2,
+    borderColor: "rgba(0, 229, 255, 0.65)",
+    ...shadow,
+  },
+  diamondIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(0, 229, 255, 0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 4,
+  },
+  diamondText: { color: colors.white, fontWeight: "800", fontSize: 14, marginRight: 6 },
+  addDiamondBtn: {
+    backgroundColor: "#0097A7",
     borderRadius: radii.pill,
     width: 20,
     height: 20,

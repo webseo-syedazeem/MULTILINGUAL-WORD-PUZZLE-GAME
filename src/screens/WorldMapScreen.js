@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BackButton, CoinBadge } from "../components/Bits";
+import { BackButton, CoinBadge, DiamondBadge } from "../components/Bits";
 import { colors, radii, shadow, glowShadow } from "../theme";
 import { useGame } from "../context/GameContext";
 import { useT } from "../i18n/useT";
@@ -108,10 +108,17 @@ export default function WorldMapScreen({ navigation, route }) {
             </Pressable>
           </View>
 
-          <CoinBadge
-            coins={state.coins}
-            onAdd={() => navigation.navigate("Shop")}
-          />
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <CoinBadge
+              coins={state.coins}
+              onAdd={() => navigation.navigate("Shop")}
+              style={{ marginRight: 6 }}
+            />
+            <DiamondBadge
+              diamonds={state.diamonds || 0}
+              onAdd={() => navigation.navigate("Shop")}
+            />
+          </View>
         </View>
 
         {/* Scrollable Map Area */}
